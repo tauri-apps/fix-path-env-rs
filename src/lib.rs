@@ -58,6 +58,12 @@ pub fn fix() -> std::result::Result<(), Error> {
   fix_vars(&["PATH"])
 }
 
+/// Do nothing on Windows as the environment variables are already set.
+#[cfg(windows)]
+pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
+  Ok(())
+}
+
 /// Do nothing on Windows as the PATH environment variable is already set.
 #[cfg(windows)]
 pub fn fix() -> std::result::Result<(), Error> {
