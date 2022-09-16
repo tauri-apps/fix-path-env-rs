@@ -11,9 +11,10 @@ pub enum Error {
   EchoFailed(String),
 }
 
-/// Reads the shell configuration to properly set the PATH environment variable.
+
+/// Reads the shell configuration to properly set all given environment variables.
 #[cfg(not(windows))]
-pub fn fix() -> std::result::Result<(), Error> {
+pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
   let default_shell = if cfg!(target_os = "macos") {
     "/bin/zsh"
   } else {
@@ -38,11 +39,8 @@ pub fn fix() -> std::result::Result<(), Error> {
     {
       let mut s = line.split('=');
       if let (Some(var), Some(value)) = (s.next(), s.next()) {
-        if var == "PATH" {
-          std::env::set_var("PATH", value);
-        }
-        if var == "KUBECONFIG" {
-          std::env::set_var("KUBECONFIG", value);
+        if vars.contains(&var) {
+          std::env::set_var(var, value);
         }
       }
     }
@@ -52,6 +50,12 @@ pub fn fix() -> std::result::Result<(), Error> {
       String::from_utf8_lossy(&out.stderr).into_owned(),
     ))
   }
+}
+
+/// Reads the shell configuration to properly set the PATH environment variable.
+#[cfg(not(windows))]
+pub fn fix() -> std::result::Result<(), Error> {
+  fix_vars(&["PATH"])
 }
 
 /// Do nothing on Windows as the PATH environment variable is already set.
