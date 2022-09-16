@@ -40,11 +40,9 @@ pub fn fix() -> std::result::Result<(), Error> {
       if let (Some(var), Some(value)) = (s.next(), s.next()) {
         if var == "PATH" {
           std::env::set_var("PATH", value);
-          break;
         }
         if var == "KUBECONFIG" {
           std::env::set_var("KUBECONFIG", value);
-          break;
         }
       }
     }
