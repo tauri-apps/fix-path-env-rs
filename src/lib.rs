@@ -42,6 +42,10 @@ pub fn fix() -> std::result::Result<(), Error> {
           std::env::set_var("PATH", value);
           break;
         }
+        if var == "KUBECONFIG" {
+          std::env::set_var("KUBECONFIG", value);
+          break;
+        }
       }
     }
     Ok(())
