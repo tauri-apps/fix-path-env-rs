@@ -48,7 +48,7 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
       {
         let mut s = line.split('=');
         if let (Some(var), Some(value)) = (s.next(), s.next()) {
-          if vars.contains(&var) {
+          if vars.is_empty() || vars.contains(&var) {
             std::env::set_var(var, value);
           }
         }
@@ -69,4 +69,13 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
 /// - **Windows**: Does nothing as the environment variables are already set.
 pub fn fix() -> std::result::Result<(), Error> {
   fix_vars(&["PATH"])
+}
+
+/// Reads the shell configuration to properly set all environment variables.
+///
+/// ## Platform-specific
+///
+/// - **Windows**: Does nothing as the environment variables are already set.
+pub fn fix_all_vars() -> std::result::Result<(), Error> {
+  fix_vars(&[])
 }
