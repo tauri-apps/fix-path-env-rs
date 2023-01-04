@@ -46,7 +46,7 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
         .split('\n')
         .filter(|l| !l.is_empty())
       {
-        let mut s = line.split('=');
+        let mut s = line.splitn(2, '=');
         if let (Some(var), Some(value)) = (s.next(), s.next()) {
           if vars.is_empty() || vars.contains(&var) {
             std::env::set_var(var, value);
