@@ -43,7 +43,10 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
 
     if out.status.success() {
       let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
-      let env = stdout.split("_SHELL_ENV_DELIMITER_").nth(1).ok_or_else(|| Error::InvalidOutput(stdout.clone()))?;
+      let env = stdout
+        .split("_SHELL_ENV_DELIMITER_")
+        .nth(1)
+        .ok_or_else(|| Error::InvalidOutput(stdout.clone()))?;
       for line in String::from_utf8_lossy(&strip_ansi_escapes::strip(env)?)
         .split('\n')
         .filter(|l| !l.is_empty())
