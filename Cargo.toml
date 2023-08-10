@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1"
-strip-ansi-escapes = "0.1"
+strip-ansi-escapes = "0.2"
