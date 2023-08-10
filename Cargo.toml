@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1"
+
+[target."cfg(not(target_os = \"windows\"))".dependencies]
 strip-ansi-escapes = "0.2"

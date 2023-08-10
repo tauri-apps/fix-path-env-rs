@@ -21,7 +21,8 @@ pub enum Error {
 pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
   #[cfg(windows)]
   {
-    let _vars = vars;
+    let _ = vars;
+    #[allow(clippy::needless_return)]
     return Ok(());
   }
   #[cfg(not(windows))]
@@ -47,7 +48,7 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
         .split("_SHELL_ENV_DELIMITER_")
         .nth(1)
         .ok_or_else(|| Error::InvalidOutput(stdout.clone()))?;
-      for line in String::from_utf8_lossy(&strip_ansi_escapes::strip(env)?)
+      for line in String::from_utf8_lossy(&strip_ansi_escapes::strip(env))
         .split('\n')
         .filter(|l| !l.is_empty())
       {
