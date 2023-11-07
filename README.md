@@ -15,21 +15,16 @@ Please note, below in the dependencies you can also lock to a revision/tag in th
 
 `src-tauri/Cargo.toml`
 ```yaml
-[dependencies.tauri]
-git = "https://github.com/tauri-apps/tauri/"
-branch = "dev"
-features = ["api-all"]
+
 
 [dependencies.fix-path-env]
 git = "https://github.com/tauri-apps/fix-path-env-rs"
-tag = "fix-path-env-v0.1.0"
-#branch = "dev"
 ```
 
 Use in `src-tauri/src/main.rs`:
 ```rust
 fn main() {
-    fix_path_env::fix();
+    let _ = fix_path_env::fix();
     tauri::Builder::default()
         .run(tauri::generate_context!());
 }
