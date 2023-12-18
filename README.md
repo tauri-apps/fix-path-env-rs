@@ -13,12 +13,11 @@ fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 ```
 
 ## Usage
-Use in `src-tauri/src/main.rs`:
+Call `fix_path_env::fix()` as early as possible in your `main` function in `main.rs` file
+
 ```rust
 fn main() {
-    let _ = fix_path_env::fix();
-    tauri::Builder::default()
-        .run(tauri::generate_context!());
+    let _ = fix_path_env::fix(); // <---- Add this
 }
 ```
 
