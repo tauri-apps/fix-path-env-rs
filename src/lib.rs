@@ -13,6 +13,15 @@ pub enum Error {
   EchoFailed(String),
 }
 
+fn fix_single_var(raw_env_str: &str, selected_vars: &[&str]) {
+  let mut splitted = raw_env_str.splitn(2, '=');
+  if let (Some(var), Some(value)) = (splitted.next(), splitted.next()) {
+    if selected_vars.is_empty() || selected_vars.contains(&var) {
+      std::env::set_var(var, value);
+    }
+  }
+}
+
 /// Reads the shell configuration to properly set all given environment variables.
 ///
 /// ## Platform-specific
@@ -52,12 +61,7 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
         .split('\n')
         .filter(|l| !l.is_empty())
       {
-        let mut s = line.splitn(2, '=');
-        if let (Some(var), Some(value)) = (s.next(), s.next()) {
-          if vars.is_empty() || vars.contains(&var) {
-            std::env::set_var(var, value);
-          }
-        }
+        fix_single_var(line, vars);
       }
       Ok(())
     } else {
