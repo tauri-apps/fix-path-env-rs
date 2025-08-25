@@ -105,7 +105,7 @@ pub fn fix_all_vars() -> std::result::Result<(), Error> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  
+
   #[cfg(windows)]
   use std::env;
 
