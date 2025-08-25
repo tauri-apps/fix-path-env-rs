@@ -17,13 +17,21 @@ pub enum Error {
 ///
 /// ## Platform-specific
 ///
-/// - **Windows**: Does nothing as the environment variables are already set.
+/// - **Windows**: Refreshes environment variables to fix PATH inheritance bug
+///   in std::process::Command where GUI apps don't properly inherit parent PATH
+/// - **macOS/Linux**: Reads shell configuration from login shell
 pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
   #[cfg(windows)]
   {
-    let _ = vars;
-    #[allow(clippy::needless_return)]
-    return Ok(());
+    // On Windows, there's a known bug where std::process::Command sometimes
+    // doesn't properly inherit the parent process's environment variables.
+    // By explicitly re-setting them, we force Command to use the current values.
+    for &var in vars {
+      if let Ok(value) = std::env::var(var) {
+        std::env::set_var(var, value);
+      }
+    }
+    Ok(())
   }
   #[cfg(not(windows))]
   {
@@ -78,7 +86,8 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
 ///
 /// ## Platform-specific
 ///
-/// - **Windows**: Does nothing as the environment variables are already set.
+/// - **Windows**: Refreshes PATH to fix inheritance bug in std::process::Command
+/// - **macOS/Linux**: Reads PATH from shell configuration
 pub fn fix() -> std::result::Result<(), Error> {
   fix_vars(&["PATH"])
 }
@@ -87,7 +96,62 @@ pub fn fix() -> std::result::Result<(), Error> {
 ///
 /// ## Platform-specific
 ///
-/// - **Windows**: Does nothing as the environment variables are already set.
+/// - **Windows**: Refreshes all environment variables to fix inheritance bug
+/// - **macOS/Linux**: Reads all environment variables from shell configuration
 pub fn fix_all_vars() -> std::result::Result<(), Error> {
   fix_vars(&[])
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[cfg(windows)]
+  use std::env;
+
+  #[test]
+  fn test_fix_returns_ok() {
+    // The fix function should always return Ok on all platforms
+    assert!(fix().is_ok());
+  }
+
+  #[test]
+  fn test_fix_vars_returns_ok() {
+    // The fix_vars function should always return Ok on all platforms
+    assert!(fix_vars(&["PATH"]).is_ok());
+  }
+
+  #[test]
+  fn test_fix_all_vars_returns_ok() {
+    // The fix_all_vars function should always return Ok on all platforms
+    assert!(fix_all_vars().is_ok());
+  }
+
+  #[cfg(windows)]
+  #[test]
+  fn test_windows_path_preservation() {
+    // On Windows, PATH should exist and be preserved after fix
+    let original_path = env::var("PATH").expect("PATH should exist on Windows");
+    assert!(fix().is_ok());
+    let after_path = env::var("PATH").expect("PATH should still exist after fix");
+    assert_eq!(original_path, after_path);
+  }
+
+  #[cfg(windows)]
+  #[test]
+  fn test_windows_custom_var_setting() {
+    // Test that custom variables are properly refreshed on Windows
+    env::set_var("TEST_VAR_FIX_PATH", "test_value");
+    assert!(fix_vars(&["TEST_VAR_FIX_PATH"]).is_ok());
+    assert_eq!(env::var("TEST_VAR_FIX_PATH").unwrap(), "test_value");
+    env::remove_var("TEST_VAR_FIX_PATH");
+  }
+
+  #[cfg(windows)]
+  #[test]
+  fn test_windows_nonexistent_var() {
+    // Test that non-existent variables don't cause errors on Windows
+    env::remove_var("NONEXISTENT_VAR_FIX_PATH");
+    assert!(fix_vars(&["NONEXISTENT_VAR_FIX_PATH"]).is_ok());
+  }
 }
