@@ -17,10 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - name: install webkit2gtk
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev
       - name: Install clippy with stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
