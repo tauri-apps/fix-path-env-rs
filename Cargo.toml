@@ -9,5 +9,5 @@ edition = "2021"
 thiserror = "1"
 home = "0.5"
 
-[target."cfg(not(target_os = \"windows\"))".dependencies]
+[target.'cfg(not(target_os = "windows"))'.dependencies]
 strip-ansi-escapes = "0.2"
