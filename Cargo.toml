@@ -6,7 +6,7 @@ license = "Apache-2.0 OR MIT"
 edition = "2021"
 
 [dependencies]
-thiserror = "1"
+thiserror = "2"
 home = "0.5"
 
 [target."cfg(not(target_os = \"windows\"))".dependencies]
