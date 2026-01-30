@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
+use std::collections::HashMap;
+
 /// The error that might happen on a [`fix`] call.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -13,25 +15,30 @@ pub enum Error {
   EchoFailed(String),
 }
 
-/// Reads the shell configuration to properly set all given environment variables.
+/// Returns specified environment variables from the login shell without setting them.
+///
+/// If `vars` is empty, returns all environment variables from the shell.
 ///
 /// ## Platform-specific
 ///
-/// - **Windows**: Refreshes environment variables to fix PATH inheritance bug
-///   in std::process::Command where GUI apps don't properly inherit parent PATH
+/// - **Windows**: Returns current env var values (workaround for std::process::Command bug)
 /// - **macOS/Linux**: Reads shell configuration from login shell
-pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
+pub fn get_vars(vars: &[&str]) -> std::result::Result<HashMap<String, String>, Error> {
   #[cfg(windows)]
   {
-    // On Windows, there's a known bug where std::process::Command sometimes
-    // doesn't properly inherit the parent process's environment variables.
-    // By explicitly re-setting them, we force Command to use the current values.
-    for &var in vars {
-      if let Ok(value) = std::env::var(var) {
-        std::env::set_var(var, value);
+    let mut result = HashMap::new();
+    if vars.is_empty() {
+      for (key, value) in std::env::vars() {
+        result.insert(key, value);
+      }
+    } else {
+      for &var in vars {
+        if let Ok(value) = std::env::var(var) {
+          result.insert(var.to_string(), value);
+        }
       }
     }
-    Ok(())
+    Ok(result)
   }
   #[cfg(not(windows))]
   {
@@ -62,6 +69,8 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
         .split("_SHELL_ENV_DELIMITER_")
         .nth(1)
         .ok_or_else(|| Error::InvalidOutput(stdout.clone()))?;
+
+      let mut result = HashMap::new();
       for line in String::from_utf8_lossy(&strip_ansi_escapes::strip(env))
         .split('\n')
         .filter(|l| !l.is_empty())
@@ -69,17 +78,53 @@ pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
         let mut s = line.splitn(2, '=');
         if let (Some(var), Some(value)) = (s.next(), s.next()) {
           if vars.is_empty() || vars.contains(&var) {
-            std::env::set_var(var, value);
+            result.insert(var.to_string(), value.to_string());
           }
         }
       }
-      Ok(())
+      Ok(result)
     } else {
       Err(Error::EchoFailed(
         String::from_utf8_lossy(&out.stderr).into_owned(),
       ))
     }
   }
+}
+
+/// Returns all environment variables from the login shell without setting them.
+///
+/// ## Platform-specific
+///
+/// - **Windows**: Returns all current env vars (workaround for std::process::Command bug)
+/// - **macOS/Linux**: Reads all env vars from shell configuration
+pub fn get_all_vars() -> std::result::Result<HashMap<String, String>, Error> {
+  get_vars(&[])
+}
+
+/// Returns PATH from the login shell without setting it.
+///
+/// ## Platform-specific
+///
+/// - **Windows**: Returns current PATH (workaround for std::process::Command bug)
+/// - **macOS/Linux**: Reads PATH from shell configuration
+pub fn get_path() -> std::result::Result<String, Error> {
+  get_vars(&["PATH"])?
+    .remove("PATH")
+    .ok_or_else(|| Error::InvalidOutput("PATH not found in shell environment".to_string()))
+}
+
+/// Reads the shell configuration to properly set all given environment variables.
+///
+/// ## Platform-specific
+///
+/// - **Windows**: Refreshes environment variables to fix PATH inheritance bug
+///   in std::process::Command where GUI apps don't properly inherit parent PATH
+/// - **macOS/Linux**: Reads shell configuration from login shell
+pub fn fix_vars(vars: &[&str]) -> std::result::Result<(), Error> {
+  for (key, value) in get_vars(vars)? {
+    std::env::set_var(key, value);
+  }
+  Ok(())
 }
 
 /// Reads the shell configuration to properly set the PATH environment variable.
@@ -153,5 +198,33 @@ mod tests {
     // Test that non-existent variables don't cause errors on Windows
     env::remove_var("NONEXISTENT_VAR_FIX_PATH");
     assert!(fix_vars(&["NONEXISTENT_VAR_FIX_PATH"]).is_ok());
+  }
+
+  #[test]
+  fn test_get_vars_returns_ok() {
+    assert!(get_vars(&["PATH"]).is_ok());
+  }
+
+  #[test]
+  fn test_get_all_vars_returns_ok() {
+    assert!(get_all_vars().is_ok());
+  }
+
+  #[test]
+  fn test_get_path_returns_ok() {
+    let path = get_path();
+    assert!(path.is_ok());
+    // PATH should not be empty
+    assert!(!path.unwrap().is_empty());
+  }
+
+  #[test]
+  fn test_get_vars_does_not_modify_env() {
+    // Set a known value
+    std::env::set_var("TEST_GET_VAR", "original");
+    // get_vars should not change it
+    let _ = get_vars(&["TEST_GET_VAR"]);
+    assert_eq!(std::env::var("TEST_GET_VAR").unwrap(), "original");
+    std::env::remove_var("TEST_GET_VAR");
   }
 }
